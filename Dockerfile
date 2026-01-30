@@ -8,8 +8,8 @@ ENV LANG=en_US.UTF-8 \
     NX_NO_CLOUD=true
 
 # Install all system dependencies in a single layer with cache mounts
-RUN --mount=type=cache,id=2DIGITS,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=2DIGITS,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=cache-node,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=cache-node,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         openssh-client \
@@ -43,7 +43,7 @@ RUN unzip bun.zip \
 RUN bun --version
 
 # Install global npm packages in a single layer
-RUN --mount=type=cache,id=2DIGITS,target=/root/.npm \
+RUN --mount=type=cache,id=cache-node,target=/root/.npm \
     npm install -g --no-fund --no-audit \
     node-gyp \
     npm@9.9.3 \
@@ -51,7 +51,7 @@ RUN --mount=type=cache,id=2DIGITS,target=/root/.npm \
     typescript@4.9.4
 
 # Install isolated-vm globally (needed for sandboxes)
-RUN --mount=type=cache,id=2DIGITS,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=cache-node,target=/root/.bun/install/cache \
     cd /usr/src && bun install isolated-vm@5.0.1
 
 ### STAGE 1: Build ###
@@ -63,7 +63,7 @@ WORKDIR /usr/src/app
 COPY .npmrc package.json bun.lock ./
 
 # Install all dependencies with frozen lockfile
-RUN --mount=type=cache,id=2DIGITS,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=cache-node,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
 # Copy source code after dependency installation
@@ -73,7 +73,7 @@ COPY . .
 RUN npx nx run-many --target=build --projects=react-ui,server-api --configuration production --parallel=2 --skip-nx-cache
 
 # Install production dependencies only for the backend API
-RUN --mount=type=cache,id=2DIGITS,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=cache-node,target=/root/.bun/install/cache \
     cd dist/packages/server/api && \
     bun install --production --frozen-lockfile
 
@@ -83,8 +83,8 @@ FROM base AS run
 WORKDIR /usr/src/app
 
 # Install Nginx and gettext in a single layer with cache mount
-RUN --mount=type=cache,id=2DIGITS,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=2DIGITS,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=cache-node,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=cache-node,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends nginx gettext
 
